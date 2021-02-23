@@ -1,3 +1,11 @@
+# FORK 
+
+This fork of LUKE is meant to include changes that make the pretraining and NER finetuning tasks compatible with transfomers 4 and newer versions of other dependencies, ultimately allowing training of a Danish LUKE -- see the main [Danish LUKE repo](https://github.com/peleiden/daLUKE).
+Everything below this point is from the original LUKE repo
+
+===================================================================================================
+
+
 <img src="resources/luke_logo.png" width="200" alt="LUKE">
 
 [![CircleCI](https://circleci.com/gh/studio-ousia/luke.svg?style=svg&circle-token=49524bfde04659b8b54509f7e0f06ec3cf38f15e)](https://circleci.com/gh/studio-ousia/luke)
