@@ -1,0 +1,2 @@
+# Requirements needed for training the Danish LUKE for python 3.9
+
