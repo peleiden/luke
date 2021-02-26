@@ -1,2 +1,11 @@
-# Requirements needed for training the Danish LUKE for python 3.9
+# Requirements needed for training the Danish LUKE for python 3.8
+torch
+tensorflow
+transformers
+tqdm
+click
+ujson
+sentencepiece
+pyicu
+wikipedia2vec # Make sure that this package is built with the same version of numpy as is run
 
