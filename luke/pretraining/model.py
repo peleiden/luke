@@ -10,7 +10,7 @@ from luke.model import LukeModel, LukeConfig
 
 class EntityPredictionHeadTransform(nn.Module):
     def __init__(self, config: LukeConfig):
-        super(EntityPredictionHeadTransform, self).__init__()
+        super().__init__()
         self.dense = nn.Linear(config.hidden_size, config.entity_emb_size)
         if isinstance(config.hidden_act, str):
             self.transform_act_fn = ACT2FN[config.hidden_act]
@@ -27,7 +27,7 @@ class EntityPredictionHeadTransform(nn.Module):
 
 class EntityPredictionHead(nn.Module):
     def __init__(self, config: LukeConfig):
-        super(EntityPredictionHead, self).__init__()
+        super().__init__()
         self.config = config
         self.transform = EntityPredictionHeadTransform(config)
         self.decoder = nn.Linear(config.entity_emb_size, config.entity_vocab_size, bias=False)
@@ -42,7 +42,7 @@ class EntityPredictionHead(nn.Module):
 
 class LukePretrainingModel(LukeModel):
     def __init__(self, config: LukeConfig):
-        super(LukePretrainingModel, self).__init__(config)
+        super().__init__(config)
 
         if self.config.bert_model_name and "roberta" in self.config.bert_model_name:
             self.lm_head = RobertaLMHead(config)
@@ -70,8 +70,7 @@ class LukePretrainingModel(LukeModel):
         **kwargs
     ):
         model_dtype = next(self.parameters()).dtype  # for fp16 compatibility
-
-        output = super(LukePretrainingModel, self).forward(
+        output = super().forward(
             word_ids,
             word_segment_ids,
             word_attention_mask,

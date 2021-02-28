@@ -102,6 +102,8 @@ class LukeModel(nn.Module):
     ):
         word_seq_size = word_ids.size(1)
 
+        # FIXME
+        # https://discuss.pytorch.org/t/embedding-error-index-out-of-range-in-self/81550
         embedding_output = self.embeddings(word_ids, word_segment_ids)
 
         attention_mask = self._compute_extended_attention_mask(word_attention_mask, entity_attention_mask)

@@ -5,6 +5,7 @@ __pycache__/
 luke*.sh
 **/local_*/
 local_*
+data
 # C extensions
 *.so
 

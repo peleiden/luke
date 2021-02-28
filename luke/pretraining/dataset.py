@@ -7,6 +7,7 @@ import random
 import re
 from contextlib import closing
 from multiprocessing.pool import Pool
+from pprint import pformat, pprint
 
 import click
 import tensorflow as tf
@@ -106,6 +107,7 @@ class WikipediaPretrainingDataset(object):
         shuffle_seed: int = 0,
         num_parallel_reads: int = 10,
     ):
+        tf.compat.v1.disable_eager_execution()
         features = dict(
             word_ids=tf.io.FixedLenSequenceFeature([], tf.int64, allow_missing=True),
             entity_ids=tf.io.FixedLenSequenceFeature([], tf.int64, allow_missing=True),
