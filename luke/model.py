@@ -32,6 +32,9 @@ class LukeConfig(BertConfig):
         else:
             self.entity_emb_size = entity_emb_size
 
+    def __repr__(self):
+        return f"LukeConfig {self.to_json_string(use_diff=False)}"
+
 
 class EntityEmbeddings(nn.Module):
     def __init__(self, config: LukeConfig):
