@@ -13,6 +13,10 @@ import click
 import tensorflow as tf
 from tensorflow.io import TFRecordWriter
 from tensorflow.train import Int64List
+
+# Avoid the tensorflow data builder subprocess taking up the GPU
+tf.config.set_visible_devices([], 'GPU')
+
 from transformers import PreTrainedTokenizer, RobertaTokenizer
 from tqdm import tqdm
 from wikipedia2vec.dump_db import DumpDB
