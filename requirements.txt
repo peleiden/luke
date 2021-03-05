@@ -9,3 +9,5 @@ sentencepiece
 pyicu
 wikipedia2vec # Make sure that this package is built with the same version of numpy as is run
 
+# Requirements needed for fine-tuning and evaluating Danish LUKE for NER
+seqeval

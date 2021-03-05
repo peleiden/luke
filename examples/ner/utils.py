@@ -1,8 +1,9 @@
+from __future__ import annotations
 import itertools
 import math
 import os
 import unicodedata
-from transformers.tokenization_roberta import RobertaTokenizer
+from transformers import RobertaTokenizer
 
 
 class InputExample(object):
@@ -43,15 +44,19 @@ class InputFeatures(object):
         self.labels = labels
 
 
-class CoNLLProcessor(object):
+class CoNLLProcessor:
+    train_fname = "eng.train"
+    dev_fname   = "eng.testa"
+    test_fname  = "eng.testb"
+
     def get_train_examples(self, data_dir):
-        return list(self._create_examples(self._read_data(os.path.join(data_dir, "eng.train")), "train"))
+        return list(self._create_examples(self._read_data(os.path.join(data_dir, self.train_fname)), "train"))
 
     def get_dev_examples(self, data_dir):
-        return list(self._create_examples(self._read_data(os.path.join(data_dir, "eng.testa")), "dev"))
+        return list(self._create_examples(self._read_data(os.path.join(data_dir, self.dev_fname)), "dev"))
 
     def get_test_examples(self, data_dir):
-        return list(self._create_examples(self._read_data(os.path.join(data_dir, "eng.testb")), "test"))
+        return list(self._create_examples(self._read_data(os.path.join(data_dir, self.test_fname)), "test"))
 
     def get_labels(self):
         return ["NIL", "MISC", "PER", "ORG", "LOC"]
@@ -89,6 +94,32 @@ class CoNLLProcessor(object):
 
     def _create_examples(self, data, fold):
         return [InputExample(f"{fold}-{i}", *args) for i, args in enumerate(data)]
+
+class DaNEProcessor(CoNLLProcessor):
+    train_fname = "ddt.train.conllu"
+    dev_fname   = "ddt.dev.conllu"
+    test_fname  = "ddt.test.conllu"
+
+    def _read_data(self, input_file: str) -> list[tuple[list[str], list[str], list[str]]]:
+        data = list()
+        words, labels = list(), list()
+        with open(input_file, "r") as f:
+            for line in f:
+                line = line.rstrip()
+                if line.startswith("#"):
+                    continue
+                if line:
+                    parts = line.split()
+                    words.append(parts[1])
+                    # DaNE uses name="B-PER" as the last column
+                    ner_label = parts[-1].split("=")[1]
+                    labels.append(parts[-1].split("|")[0])
+                else:
+                    # In DaNE, we sadly don't have access to the document structure: Each sentence is saved as a document here.
+                    sentence_boundaries = [0, len(words)]
+                    data.append((words, labels, sentence_boundaries))
+                    words, labels = list(), list()
+        return data
 
 
 def convert_examples_to_features(

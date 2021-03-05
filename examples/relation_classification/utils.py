@@ -2,7 +2,7 @@ import json
 import os
 
 from tqdm import tqdm
-from transformers.tokenization_roberta import RobertaTokenizer
+from transformers import RobertaTokenizer
 
 HEAD_TOKEN = "[HEAD]"
 TAIL_TOKEN = "[TAIL]"

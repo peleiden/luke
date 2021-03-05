@@ -13,11 +13,12 @@ from tqdm import tqdm
 from transformers import WEIGHTS_NAME
 
 from luke.utils.entity_vocab import MASK_TOKEN
+import examples.ner.utils as ner_utils
 
 from ..utils import set_seed
 from ..utils.trainer import Trainer, trainer_args
 from .model import LukeForNamedEntityRecognition
-from .utils import CoNLLProcessor, convert_examples_to_features
+from .utils import convert_examples_to_features
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ def cli():
 @click.option("--num-train-epochs", default=5.0)
 @click.option("--seed", default=35)
 @click.option("--train-on-dev-set", is_flag=True)
+@click.option("--data-processor", default="CoNLLProcessor", type=click.Choice(["CoNLLProcessor", "DaNEProcessor"]))
 @trainer_args
 @click.pass_obj
 def run(common_args, **task_args):
@@ -169,7 +171,12 @@ def load_examples(args, fold):
     if args.local_rank not in (-1, 0) and fold == "train":
         torch.distributed.barrier()
 
-    processor = CoNLLProcessor()
+    try:
+        processor_cls = getattr(ner_utils, args.data_processor)
+    except AttributeError as ae:
+        raise ValueError(f"Could not find dataset processor {args.data_processor}") from ae
+    processor: ner_utils.CoNLLProcessor = processor_cls()
+
     if fold == "train":
         examples = processor.get_train_examples(args.data_dir)
     elif fold == "dev":

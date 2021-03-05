@@ -2,7 +2,7 @@ import json
 import os
 
 from tqdm import tqdm
-from transformers.tokenization_roberta import RobertaTokenizer
+from transformers import RobertaTokenizer
 
 ENTITY_TOKEN = "[ENTITY]"
 
