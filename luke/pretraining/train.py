@@ -465,19 +465,21 @@ def run_parallel_pretraining(args):
     current_env["MASTER_PORT"] = args.master_port
     current_env["WORLD_SIZE"] = str(num_workers * args.num_nodes)
     current_env["OMP_NUM_THREADS"] = str(1)
+    cmds = []
     processes = []
     for local_rank in range(num_workers):
-        cmd = ["luke", "start-pretraining-worker", f"--local-rank={local_rank}", f"--args={json.dumps(vars(args))}"]
+        cmd = ["python3", "-m", "luke.cli", "start-pretraining-worker", f"--local-rank={local_rank}", f"--args={json.dumps(vars(args))}"]
+        cmds.append(cmd)
         current_env["RANK"] = str(num_workers * args.node_rank + local_rank)
         current_env["LOCAL_RANK"] = str(local_rank)
         process = subprocess.Popen(cmd, env=current_env)
         processes.append(process)
 
     try:
-        for process in processes:
+        for i, process in enumerate(processes):
             process.wait()
             if process.returncode != 0:
-                raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
+                raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmds[i])
     except KeyboardInterrupt:
         for process in processes:
             process.terminate()

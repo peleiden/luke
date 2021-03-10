@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 luke*.sh
+pretrain.sh
 **/local_*/
 local_*
 data
