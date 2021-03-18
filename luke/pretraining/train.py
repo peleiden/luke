@@ -11,6 +11,7 @@ from argparse import Namespace
 import click
 import numpy as np
 import torch
+import torch.multiprocessing as mp
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from transformers import (
@@ -69,8 +70,8 @@ logger = logging.getLogger(__name__)
 @click.option("--local-rank", "--local_rank", default=-1)
 @click.option("--num-nodes", default=1)
 @click.option("--node-rank", default=0)
-@click.option("--master-addr", default="127.0.0.1")
-@click.option("--master-port", default="29502")
+@click.option("--master-addr", default="localhost")
+@click.option("--master-port", default="12355")
 @click.option("--log-dir", type=click.Path(), default=None)
 @click.option("--model-file", type=click.Path(exists=True), default=None)
 @click.option("--optimizer-file", type=click.Path(exists=True), default=None)
@@ -89,13 +90,13 @@ def pretrain(**kwargs):
 @click.option("--grad-avg-on-cpu", is_flag=True, default=None)
 @click.option("--num-nodes", default=1)
 @click.option("--node-rank", default=0)
-@click.option("--master-addr", default="127.0.0.1")
+@click.option("--master-addr", default="localhost")
 @click.option("--master-port", default="29502")
 def resume_pretraining(output_dir: str, **kwargs):
     if "num_nodes" not in kwargs:
         kwargs["num_nodes"] = 1
         kwargs["node_rank"] = 0
-        kwargs["master_addr"] = "127.0.0.1"
+        kwargs["master_addr"] = "localhost"
         kwargs["master_port"] = "29502"
 
     with open(os.path.join(output_dir, "metadata.json")) as f:
@@ -132,12 +133,14 @@ def resume_pretraining(output_dir: str, **kwargs):
     run_pretraining(Namespace(**args))
 
 
-@click.command(hidden=True)
-@click.option("--local-rank", type=int)
-@click.option("--args", default="{}")
-def start_pretraining_worker(local_rank: int, args):
+# @click.command(hidden=True)
+# @click.option("--local-rank", type=int)
+# @click.option("--args", default="{}")
+def start_pretraining_worker(_, local_rank: int, args, env):
     args = json.loads(args)
     args["local_rank"] = local_rank
+    os.environ = env
+    os.environ["RANK"] = local_rank
     run_pretraining(Namespace(**args))
 
 
@@ -467,17 +470,18 @@ def run_parallel_pretraining(args):
     current_env["OMP_NUM_THREADS"] = str(1)
     processes = []
     for local_rank in range(num_workers):
-        cmd = ["luke", "start-pretraining-worker", f"--local-rank={local_rank}", f"--args={json.dumps(vars(args))}"]
         current_env["RANK"] = str(num_workers * args.node_rank + local_rank)
         current_env["LOCAL_RANK"] = str(local_rank)
-        process = subprocess.Popen(cmd, env=current_env)
-        processes.append(process)
+        mp.spawn(start_pretraining_worker, args=(local_rank, json.dumps(vars(args)), current_env))
+        # cmd = ["luke", "start-pretraining-worker", f"--local-rank={local_rank}", f"--args={json.dumps(vars(args))}"]
+        # process = subprocess.Popen(cmd, env=current_env)
+        # processes.append(process)
 
-    try:
-        for process in processes:
-            process.wait()
-            if process.returncode != 0:
-                raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
-    except KeyboardInterrupt:
-        for process in processes:
-            process.terminate()
+    # try:
+    #     for process in processes:
+    #         process.wait()
+    #         if process.returncode != 0:
+    #             raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
+    # except KeyboardInterrupt:
+    #     for process in processes:
+    #         process.terminate()
