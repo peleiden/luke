@@ -18,6 +18,15 @@ from transformers.models.roberta.modeling_roberta import RobertaEmbeddings
 
 logger = logging.getLogger(__name__)
 
+from pelutils import log, Levels
+log.configure("local_debug.log", "Debug", print_level=Levels.DEBUG)
+def gpu_usage() -> str:
+    """ Logs resource usage on GPU """
+    if torch.cuda.is_available():
+        alloc = torch.cuda.memory_allocated(0) / 1024**3
+        cache = torch.cuda.memory_reserved(0) / 1024**3
+        return "VRAM usage: %4.2f GB, cache usage: %4.2f GB" % (alloc, cache)
+    return ""
 
 class LukeConfig(BertConfig):
     def __init__(
@@ -169,14 +178,17 @@ class LukeModel(nn.Module):
             for name, child in module._modules.items():
                 if child is not None:
                     load(child, prefix + name + ".")
-
         load(self, prefix="")
-        if len(unexpected_keys) > 0:
-            logger.info(
-                "Weights from pretrained model not used in {}: {}".format(
-                    self.__class__.__name__, sorted(unexpected_keys)
-                )
+        logger.info(
+            "Weights from pretrained model not used in {}: {}".format(
+                self.__class__.__name__, sorted(unexpected_keys)
             )
+        )
+        logger.info(
+            "Weights from pretrained model not used in {}: {}".format(
+                self.__class__.__name__, sorted(missing_keys)
+            )
+        )
         if len(error_msgs) > 0:
             raise RuntimeError(
                 "Error(s) in loading state_dict for {}:\n\t{}".format(self.__class__.__name__, "\n\t".join(error_msgs))
@@ -262,43 +274,51 @@ class EntityAwareSelfAttention(nn.Module):
         return x.view(*new_x_shape).permute(0, 2, 1, 3)
 
     def forward(self, word_hidden_states, entity_hidden_states, attention_mask):
+        log.section("forward")
         word_size = word_hidden_states.size(1)
-
+        log("layers", gpu_usage())
         w2w_query_layer = self.transpose_for_scores(self.query(word_hidden_states))
         w2e_query_layer = self.transpose_for_scores(self.w2e_query(word_hidden_states))
         e2w_query_layer = self.transpose_for_scores(self.e2w_query(entity_hidden_states))
         e2e_query_layer = self.transpose_for_scores(self.e2e_query(entity_hidden_states))
 
+        log("key layer", gpu_usage())
         key_layer = self.transpose_for_scores(self.key(torch.cat([word_hidden_states, entity_hidden_states], dim=1)))
 
+        log("key layers", gpu_usage())
         w2w_key_layer = key_layer[:, :, :word_size, :]
         e2w_key_layer = key_layer[:, :, :word_size, :]
         w2e_key_layer = key_layer[:, :, word_size:, :]
         e2e_key_layer = key_layer[:, :, word_size:, :]
 
+        log("attention scores", gpu_usage())
         w2w_attention_scores = torch.matmul(w2w_query_layer, w2w_key_layer.transpose(-1, -2))
         w2e_attention_scores = torch.matmul(w2e_query_layer, w2e_key_layer.transpose(-1, -2))
         e2w_attention_scores = torch.matmul(e2w_query_layer, e2w_key_layer.transpose(-1, -2))
         e2e_attention_scores = torch.matmul(e2e_query_layer, e2e_key_layer.transpose(-1, -2))
-
+        log("cat", gpu_usage())
         word_attention_scores = torch.cat([w2w_attention_scores, w2e_attention_scores], dim=3)
         entity_attention_scores = torch.cat([e2w_attention_scores, e2e_attention_scores], dim=3)
         attention_scores = torch.cat([word_attention_scores, entity_attention_scores], dim=2)
-
+        log("attention again", gpu_usage())
         attention_scores = attention_scores / math.sqrt(self.attention_head_size)
         attention_scores = attention_scores + attention_mask
-
+        log("soft", gpu_usage())
         attention_probs = F.softmax(attention_scores, dim=-1)
         attention_probs = self.dropout(attention_probs)
 
+        log("value", gpu_usage())
         value_layer = self.transpose_for_scores(
             self.value(torch.cat([word_hidden_states, entity_hidden_states], dim=1))
         )
+        log("context", gpu_usage())
         context_layer = torch.matmul(attention_probs, value_layer)
 
+        log("context2", gpu_usage())
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(*new_context_layer_shape)
+        log("done", gpu_usage())
 
         return context_layer[:, :word_size, :], context_layer[:, word_size:, :]
 

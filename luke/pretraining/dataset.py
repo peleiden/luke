@@ -279,7 +279,7 @@ class WikipediaPretrainingDataset(object):
             for link in paragraph.wiki_links:
                 link_title = _dump_db.resolve_redirect(link.title)
                 # remove category links
-                if link_title.startswith("Category:") and link.text.lower().startswith("category:"):
+                if link_title.startswith("Kategori:") and link.text.lower().startswith("kategori:"):
                     paragraph_text = (
                         paragraph_text[: link.start] + " " * (link.end - link.start) + paragraph_text[link.end :]
                     )

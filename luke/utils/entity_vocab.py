@@ -148,7 +148,7 @@ class EntityVocab(object):
         if not white_list_only:
             valid_titles = frozenset(dump_db.titles())
             for title, count in counter.most_common():
-                if title in valid_titles and not title.startswith("Category:"):
+                if title in valid_titles and not title.startswith("Kategori:"):
                     title_dict[title] = count
                     if len(title_dict) == vocab_size:
                         break
