@@ -1,13 +1,13 @@
 # Requirements needed for training the Danish LUKE for python 3.8
-torch>=1.7.1
-tensorflow-gpu>=2.4.1
+torch>=1.8.0
+tensorflow>=2.4.1
 transformers>=4.3.3
 tqdm
 click
 ujson
 sentencepiece
 pyicu
-wikipedia2vec # Make sure that this package is built with the same version of numpy as is run
+wikipedia2vec>=1.0.4  # Make sure that this package is built with the same version of numpy as is run
 
 # Requirements needed for fine-tuning and evaluating Danish LUKE for NER
 seqeval
